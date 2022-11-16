@@ -1,0 +1,557 @@
+zabbix_export:
+  version: '5.4'
+  date: '2022-11-16T13:17:17Z'
+  groups:
+    -
+      uuid: 3d07148a885b421daeb3fa73c6a4aca7
+      name: App
+  templates:
+    -
+      uuid: 4475b362aaa741f69a8cb0b87d5a9772
+      template: 'Nginx HTTP vts'
+      name: 'Nginx HTTP vts'
+      groups:
+        -
+          name: App
+      discovery_rules:
+        -
+          uuid: 11584013c9724e16850c59e237451e93
+          name: 'Server Zones'
+          type: SCRIPT
+          key: nginx.vts.discovery.servers
+          delay: 24h
+          params: |
+            function DiscoveredItem(zoneName)
+            { 
+                this.SERVER_ZONE=zoneName;
+            }
+            
+            function sendGetRequest()
+            {
+                var req = new HttpRequest(),
+                vtsUrl = '{$URL_VTS}',
+                resp;
+            
+                req.addHeader('Content-Type: application/json');
+                resp = req.get(vtsUrl);
+            	if (req.getStatus() != 200) {
+                    throw 'Response code: '+req.getStatus();
+                }
+            	return resp;
+            }
+            	
+            	Zabbix.log(4, '');
+                
+            	var resultArray = [];
+                var resp = sendGetRequest();
+                var result = JSON.parse(resp);
+                var srvZones = [];
+                for(var tKey in result.serverZones) srvZones.push({name:tKey});
+                for(var i=0;i< srvZones.length;i++)
+                {
+                     var zoneName = srvZones[i].name;
+                     var newZone = new DiscoveredItem(zoneName);
+                     resultArray.push(newZone);
+                    
+                }
+            	
+                              
+                              
+              
+            return JSON.stringify(resultArray);
+          item_prototypes:
+            -
+              uuid: 24b25c98dea04819bb831d3a91e38963
+              name: 'Base Item Server Zone {#SERVER_ZONE}'
+              type: SCRIPT
+              key: 'nginx.vts.base[zone_{#SERVER_ZONE}]'
+              history: 1d
+              trends: '0'
+              value_type: TEXT
+              params: |
+                function zServer()
+                { 
+                    this.requestCounter="";
+                    this.inBytes="";
+                    this.outBytes="";
+                    
+                    this.responses="";
+                    this.requestMsecCounter="";
+                    this.requestMsec="";
+                    this.requestMsecs="";
+                    this.requestBuckets=""
+                }
+                
+                function sendGetRequest()
+                {
+                    var req = new HttpRequest(),
+                    vtsUrl = '{$URL_VTS}',
+                    resp;
+                
+                    req.addHeader('Content-Type: application/json');
+                    resp = req.get(vtsUrl);
+                	if (req.getStatus() != 200) {
+                        throw 'Response code: '+req.getStatus();
+                    }
+                	return resp;
+                }
+                try
+                {
+                    var zoneName = '{#SERVER_ZONE}';
+                    var resultRsp ={};
+                    var resp = sendGetRequest();
+                    var result = JSON.parse(resp);
+                
+                    var server = result.serverZones[zoneName]
+                
+                   
+                            var zSrv = new zServer();
+                            zSrv.requestCounter = server.requestCounter;
+                            zSrv.inBytes = server.inBytes;
+                            zSrv.outBytes = server.outBytes;
+                            zSrv.responses = server.responses;
+                
+                            zSrv.requestMsecCounter = server.requestMsecCounter;
+                            zSrv.requestMsec = server.requestMsec;
+                            zSrv.requestMsecs = server.requestMsecs;
+                            zSrv.requestBuckets = server.requestBuckets;
+                            
+                            resultRsp = zSrv;
+                        
+                    
+                }catch (error)
+                {
+                    Zabbix.log(4, 'Ошибка при выполнении скрипта получения данных:'+error);
+                    resultRsp = {error};
+                }
+                   
+                return JSON.stringify(resultRsp);
+            -
+              uuid: 9c41ef76b73d4b488cfa3f52b0514991
+              name: '{#SERVER_ZONE} 1xx responses count'
+              type: DEPENDENT
+              key: 'nginx.vts.stats.srvzone[{#SERVER_ZONE},1xx]'
+              delay: '0'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.responses.1xx
+              master_item:
+                key: 'nginx.vts.base[zone_{#SERVER_ZONE}]'
+            -
+              uuid: f7a3b4156535476dbee6f9efedb67618
+              name: '{#SERVER_ZONE} 2xx responses count'
+              type: DEPENDENT
+              key: 'nginx.vts.stats.srvzone[{#SERVER_ZONE},2xx]'
+              delay: '0'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.responses.2xx
+              master_item:
+                key: 'nginx.vts.base[zone_{#SERVER_ZONE}]'
+            -
+              uuid: ee723c0d8cbd4872a58e4b25f15356b1
+              name: '{#SERVER_ZONE} 3xx responses count'
+              type: DEPENDENT
+              key: 'nginx.vts.stats.srvzone[{#SERVER_ZONE},3xx]'
+              delay: '0'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.responses.3xx
+              master_item:
+                key: 'nginx.vts.base[zone_{#SERVER_ZONE}]'
+            -
+              uuid: 451df6c4d78c4c758361a569a319f1e8
+              name: '{#SERVER_ZONE} 4xx responses count'
+              type: DEPENDENT
+              key: 'nginx.vts.stats.srvzone[{#SERVER_ZONE},4xx]'
+              delay: '0'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.responses.4xx
+              master_item:
+                key: 'nginx.vts.base[zone_{#SERVER_ZONE}]'
+            -
+              uuid: e3e027a4f0b2457c8bb702b6a69ea376
+              name: '{#SERVER_ZONE} 5xx responses count'
+              type: DEPENDENT
+              key: 'nginx.vts.stats.srvzone[{#SERVER_ZONE},5xx]'
+              delay: '0'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.responses.5xx
+              master_item:
+                key: 'nginx.vts.base[zone_{#SERVER_ZONE}]'
+            -
+              uuid: 0d768250a1c947eaaed56b2fc8166ec0
+              name: '{#SERVER_ZONE} inBytes'
+              type: DEPENDENT
+              key: 'nginx.vts.stats.srvzone[{#SERVER_ZONE}, inBytes]'
+              delay: '0'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.inBytes
+              master_item:
+                key: 'nginx.vts.base[zone_{#SERVER_ZONE}]'
+            -
+              uuid: 1609325a690d4c70873623f221c0a227
+              name: '{#SERVER_ZONE} outBytes'
+              type: DEPENDENT
+              key: 'nginx.vts.stats.srvzone[{#SERVER_ZONE}, outBytes]'
+              delay: '0'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.outBytes
+              master_item:
+                key: 'nginx.vts.base[zone_{#SERVER_ZONE}]'
+            -
+              uuid: f5db21a2a6b44a4c8b325ebbaff5acfc
+              name: '{#SERVER_ZONE} request count'
+              type: DEPENDENT
+              key: 'nginx.vts.stats.srvzone[{#SERVER_ZONE}, requestCounter]'
+              delay: '0'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.requestCounter
+              master_item:
+                key: 'nginx.vts.base[zone_{#SERVER_ZONE}]'
+          lld_macro_paths:
+            -
+              lld_macro: '{#SERVER_ZONE}'
+              path: $.SERVER_ZONE
+        -
+          uuid: 7abd4165aca24b819177f0cfdc835109
+          name: 'Upstream Zones'
+          type: SCRIPT
+          key: nginx.vts.discovery.upstreams
+          delay: 24h
+          params: |
+            function DiscoveredItem(zoneName,server)
+            { 
+                this.UPSTREAM=zoneName;
+            }
+            
+            function sendGetRequest()
+            {
+                var req = new HttpRequest(),
+                vtsUrl = '{$URL_VTS}',
+                resp;
+            
+                req.addHeader('Content-Type: application/json');
+                resp = req.get(vtsUrl);
+            	if (req.getStatus() != 200) {
+                    throw 'Response code: '+req.getStatus();
+                }
+            	return resp;
+            }
+            	
+            	Zabbix.log(4, '');
+                
+            	var resultArray = [];
+                var resp = sendGetRequest();
+                var result = JSON.parse(resp);
+                var upZones = [];
+                for(var tKey in result.upstreamZones) upZones.push({name:tKey, value:result.upstreamZones[tKey]});
+                for(var i=0;i< upZones.length;i++)
+                {
+                     var zoneName = upZones[i].name;
+                     var zoneValue =upZones[i].value; 
+                     
+                    
+                     
+                     for (s=0;s < zoneValue.length;s++)
+                     {
+                         var newGroup = new DiscoveredItem(zoneName);
+                         newGroup.NODE_ADDRESS = zoneValue[s].server; 
+                         resultArray.push(newGroup);
+                     }
+                    
+                }
+            	
+                              
+                              
+              
+            return JSON.stringify(resultArray);
+          item_prototypes:
+            -
+              uuid: e4d9465f21f24c4fb93b574ba5e5f8c7
+              name: 'Base Item {#UPSTREAM} {#NODE_ADDRESS}'
+              type: SCRIPT
+              key: 'nginx.vts.base[{#UPSTREAM},{#NODE_ADDRESS}]'
+              trends: '0'
+              value_type: TEXT
+              params: |
+                function zServer()
+                { 
+                    this.server="";
+                    this.requestCounter="";
+                    this.inBytes="";
+                    this.outBytes="";
+                    
+                    this.responses="";
+                    this.requestMsecCounter="";
+                
+                    this.responseMsecCounter="";
+                
+                    this.weight="";
+                    this.maxFails="";
+                    this.failTimeout="";
+                    this.backup="";
+                    this.down="";
+                }
+                
+                function sendGetRequest()
+                {
+                    var req = new HttpRequest(),
+                    vtsUrl = '{$URL_VTS}',
+                    resp;
+                
+                    req.addHeader('Content-Type: application/json');
+                    resp = req.get(vtsUrl);
+                	if (req.getStatus() != 200) {
+                        throw 'Response code: '+req.getStatus();
+                    }
+                	return resp;
+                }
+                try
+                {
+                    var zoneName = '{#UPSTREAM}';
+                    var node = '{#NODE_ADDRESS}';
+                    var resultRsp ={};
+                    var resp = sendGetRequest();
+                    var result = JSON.parse(resp);
+                
+                    var servers = result.upstreamZones[zoneName]
+                
+                    for(var i=0;i< servers.length;i++)
+                    {
+                        var zoneServer = servers[i];
+                        if(zoneServer.server == node)
+                        {
+                            
+                            var zSrv = new zServer();
+                            zSrv.server = zoneServer.server;
+                            zSrv.requestCounter = zoneServer.requestCounter;
+                            zSrv.inBytes = zoneServer.inBytes;
+                            zSrv.outBytes = zoneServer.outBytes;
+                            zSrv.responses = zoneServer.responses;
+                
+                            zSrv.requestMsecCounter = zoneServer.requestMsecCounter;
+                
+                            
+                            zSrv.responseMsecCounter = zoneServer.responseMsecCounter;
+                
+                
+                            zSrv.weight = zoneServer.weight;
+                            zSrv.maxFails = zoneServer.maxFails;
+                            zSrv.failTimeout = zoneServer.failTimeout;
+                            zSrv.backup = zoneServer.backup;
+                            zSrv.down = zoneServer.down;
+                            
+                            resultRsp = zSrv;
+                        }
+                    }
+                }catch (error)
+                {
+                    Zabbix.log(4, 'Ошибка при выполнении скрипта получения данных:'+error);
+                    resultRsp = {};
+                }
+                   
+                return JSON.stringify(resultRsp);
+            -
+              uuid: 213baaf284bf4cac90c0c6c889f230f8
+              name: '{#UPSTREAM} {#NODE_ADDRESS} 1xx responses count'
+              type: DEPENDENT
+              key: 'nginx.vts.stats[{#UPSTREAM}, {#NODE_ADDRESS},1xx]'
+              delay: '0'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.responses.1xx
+              master_item:
+                key: 'nginx.vts.base[{#UPSTREAM},{#NODE_ADDRESS}]'
+            -
+              uuid: 67de7ae3f873473689606a2ff5397859
+              name: '{#UPSTREAM} {#NODE_ADDRESS} 2xx responses count'
+              type: DEPENDENT
+              key: 'nginx.vts.stats[{#UPSTREAM}, {#NODE_ADDRESS},2xx]'
+              delay: '0'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.responses.2xx
+              master_item:
+                key: 'nginx.vts.base[{#UPSTREAM},{#NODE_ADDRESS}]'
+            -
+              uuid: 6c7a3f4d304f4dfb9c581ac6e6d044de
+              name: '{#UPSTREAM} {#NODE_ADDRESS} 3xx responses count'
+              type: DEPENDENT
+              key: 'nginx.vts.stats[{#UPSTREAM}, {#NODE_ADDRESS},3xx]'
+              delay: '0'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.responses.3xx
+              master_item:
+                key: 'nginx.vts.base[{#UPSTREAM},{#NODE_ADDRESS}]'
+            -
+              uuid: 75583778c1974f36b8b7a225dc86f489
+              name: '{#UPSTREAM} {#NODE_ADDRESS} 4xx responses count'
+              type: DEPENDENT
+              key: 'nginx.vts.stats[{#UPSTREAM}, {#NODE_ADDRESS},4xx]'
+              delay: '0'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.responses.4xx
+              master_item:
+                key: 'nginx.vts.base[{#UPSTREAM},{#NODE_ADDRESS}]'
+            -
+              uuid: bf41a8084aa8483291a23486d1fa48e1
+              name: '{#UPSTREAM} {#NODE_ADDRESS} 5xx responses count'
+              type: DEPENDENT
+              key: 'nginx.vts.stats[{#UPSTREAM}, {#NODE_ADDRESS},5xx]'
+              delay: '0'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.responses.5xx
+              master_item:
+                key: 'nginx.vts.base[{#UPSTREAM},{#NODE_ADDRESS}]'
+            -
+              uuid: c8f4bbd70de84a08bdf9743a5eabbcb5
+              name: '{#UPSTREAM} {#NODE_ADDRESS} down'
+              type: DEPENDENT
+              key: 'nginx.vts.stats[{#UPSTREAM}, {#NODE_ADDRESS},down]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.down
+              master_item:
+                key: 'nginx.vts.base[{#UPSTREAM},{#NODE_ADDRESS}]'
+            -
+              uuid: 7884c46194d2457ea18b78fdd9d3e725
+              name: '{#UPSTREAM} {#NODE_ADDRESS} failTimeout'
+              type: DEPENDENT
+              key: 'nginx.vts.stats[{#UPSTREAM}, {#NODE_ADDRESS},failTimeout]'
+              delay: '0'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.failTimeout
+              master_item:
+                key: 'nginx.vts.base[{#UPSTREAM},{#NODE_ADDRESS}]'
+            -
+              uuid: 9aa9f12d270043c6a83bed36e7e8ba5e
+              name: '{#UPSTREAM} {#NODE_ADDRESS} inBytes'
+              type: DEPENDENT
+              key: 'nginx.vts.stats[{#UPSTREAM}, {#NODE_ADDRESS}, inBytes]'
+              delay: '0'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.inBytes
+              master_item:
+                key: 'nginx.vts.base[{#UPSTREAM},{#NODE_ADDRESS}]'
+            -
+              uuid: 98d176eb93374cb384896319abf87f2a
+              name: '{#UPSTREAM} {#NODE_ADDRESS} maxFails'
+              type: DEPENDENT
+              key: 'nginx.vts.stats[{#UPSTREAM}, {#NODE_ADDRESS},maxFails]'
+              delay: '0'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.maxFails
+              master_item:
+                key: 'nginx.vts.base[{#UPSTREAM},{#NODE_ADDRESS}]'
+            -
+              uuid: 27705acb7cfc4d67b413556cd91c58ed
+              name: '{#UPSTREAM} {#NODE_ADDRESS} outBytes'
+              type: DEPENDENT
+              key: 'nginx.vts.stats[{#UPSTREAM}, {#NODE_ADDRESS},outBytes]'
+              delay: '0'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.outBytes
+              master_item:
+                key: 'nginx.vts.base[{#UPSTREAM},{#NODE_ADDRESS}]'
+            -
+              uuid: 9a39a7bd028c4a209e26c514d39ed243
+              name: '{#UPSTREAM} {#NODE_ADDRESS} requests count'
+              type: DEPENDENT
+              key: 'nginx.vts.stats[{#UPSTREAM}, {#NODE_ADDRESS},requestCounter]'
+              delay: '0'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.requestCounter
+              master_item:
+                key: 'nginx.vts.base[{#UPSTREAM},{#NODE_ADDRESS}]'
+            -
+              uuid: 089fda96fbf247a1802f24ab94f3a845
+              name: '{#UPSTREAM} {#NODE_ADDRESS} requestMsecCounter'
+              type: DEPENDENT
+              key: 'nginx.vts.stats[{#UPSTREAM}, {#NODE_ADDRESS}, requestMsecCounter]'
+              delay: '0'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.requestMsecCounter
+              master_item:
+                key: 'nginx.vts.base[{#UPSTREAM},{#NODE_ADDRESS}]'
+            -
+              uuid: 7762447e34fc401bbd91c4aa33e6f6f0
+              name: '{#UPSTREAM} {#NODE_ADDRESS} responseMsecCounter'
+              type: DEPENDENT
+              key: 'nginx.vts.stats[{#UPSTREAM}, {#NODE_ADDRESS},responseMsecCounter]'
+              delay: '0'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.responseMsecCounter
+              master_item:
+                key: 'nginx.vts.base[{#UPSTREAM},{#NODE_ADDRESS}]'
+          lld_macro_paths:
+            -
+              lld_macro: '{#NODE_ADDRESS}'
+              path: $.NODE_ADDRESS
+            -
+              lld_macro: '{#UPSTREAM}'
+              path: $.UPSTREAM
+      macros:
+        -
+          macro: '{$URL_VTS}'
+          value: 'http://127.0.0.1/status/format/json'
