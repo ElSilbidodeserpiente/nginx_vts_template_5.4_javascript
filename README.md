@@ -9,7 +9,7 @@
 
  1. Импортировать шаблон Zabbix
  2. Добавить в host или шаблон макрос указывающий путь к url status  в формате json (!!!)
- {$URL_VTS_STATUS} например https://site.com/status/format/json
+{$URL_VTS} , например https://site.com/status/format/json
  3. Присоединить шаблон Nginx VTS к узлу сети
  4. Проверить наличие свежих данных
 
